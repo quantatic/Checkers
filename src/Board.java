@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 
@@ -23,8 +25,12 @@ public class Board extends JPanel{
     private final Color WHITE_CHECKER = new Color(0xF5F5DC);
     private final Color BLACK_CHECKER = Color.BLACK;
 
+    private final Color SELECTED_COLOR = new Color(0, 0, 0, 127);
+
+    private int selectedX = -1;
+    private int selectedY = -1;
+
     private final int FPS = 60;
-    private final double TWO_PI = 2 * Math.PI;
 
     public Board(){
         init();
@@ -38,9 +44,11 @@ public class Board extends JPanel{
     }
 
     private void init(){
-        assert SQUARE_SIZE > CHECKER_SIZE; //make sure that the size of our squares is larger than the size of a checker so we don't have overlap
+        assert SQUARE_SIZE >= CHECKER_SIZE; //make sure that the size of our squares is larger than the size of a checker so we don't have overlap
+
         setPreferredSize(new Dimension(WIDTH * SQUARE_SIZE, HEIGHT * SQUARE_SIZE));
         setDoubleBuffered(true);
+        setFocusable(true);
 
         for(int x = 0; x < WIDTH; x++){
             for(int y = 0; y < HEIGHT; y++){
@@ -53,6 +61,19 @@ public class Board extends JPanel{
                 }
             }
         }
+        addMouseListener(new MouseAdapter(){
+            @Override
+            public void mousePressed(MouseEvent e){
+                selectedX = e.getX() / SQUARE_SIZE;
+                selectedY = e.getY() / SQUARE_SIZE;
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e){
+                selectedX = -1;
+                selectedY = -1;
+            }
+        });
     }
 
     @Override
@@ -82,6 +103,13 @@ public class Board extends JPanel{
                 g2d.draw(square);
             }
         }
+
+        if(selectedX >= 0 && selectedY >= 0){
+            Rectangle.Double selection = new Rectangle.Double(selectedX * SQUARE_SIZE, selectedY * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+            g2d.setColor(SELECTED_COLOR);
+            g2d.fill(selection);
+            g2d.draw(selection);
+        }
     }
 
     private void renderCheckers(Graphics2D g2d){
@@ -103,8 +131,6 @@ public class Board extends JPanel{
                 if(BOARD[y][x] != 0){
                     g2d.fill(circle);
                 }
-
-
             }
         }
     }
