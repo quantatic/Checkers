@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Arc2D;
+import java.awt.geom.Ellipse2D;
 
 /**
  * Created by Aidan on 5/13/2017.
@@ -12,14 +13,16 @@ import java.awt.geom.Arc2D;
 public class Board extends JPanel{
 
     private final int SQUARE_SIZE = 64;
-    private final int CHECKER_SIZE = 16;
+    private final int CHECKER_SIZE = 40;
     private final int[][] BOARD = new int[8][8]; //access as board[y][x]. 0 for none, -1 for black, 1 for white
     private final int WIDTH = BOARD[0].length;
     private final int HEIGHT = BOARD.length;
-    private final Color WHITE_SQUARE = Color.white;
-    private final Color BLACK_SQUARE = Color.black;
-    private final Color WHITE_CHECKER = Color.lightGray;
-    private final Color BLACK_CHECKER = Color.darkGray;
+
+    private final Color WHITE_SQUARE = new Color(0xFFFACD);
+    private final Color BLACK_SQUARE = new Color(0xA0522D);
+    private final Color WHITE_CHECKER = new Color(0xF5F5DC);
+    private final Color BLACK_CHECKER = Color.BLACK;
+
     private final int FPS = 60;
     private final double TWO_PI = 2 * Math.PI;
 
@@ -37,6 +40,19 @@ public class Board extends JPanel{
     private void init(){
         assert SQUARE_SIZE > CHECKER_SIZE; //make sure that the size of our squares is larger than the size of a checker so we don't have overlap
         setPreferredSize(new Dimension(WIDTH * SQUARE_SIZE, HEIGHT * SQUARE_SIZE));
+        setDoubleBuffered(true);
+
+        for(int x = 0; x < WIDTH; x++){
+            for(int y = 0; y < HEIGHT; y++){
+                if((x + y) % 2 == 1){
+                    if(y < 3){
+                        BOARD[y][x] = -1;
+                    }else if(y > 4){
+                        BOARD[y][x] = 1;
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -71,14 +87,24 @@ public class Board extends JPanel{
     private void renderCheckers(Graphics2D g2d){
         for(int x = 0; x < WIDTH; x++){
             for(int y = 0; y < HEIGHT; y++){
-                if(BOARD[y][x] == 1){
-                    g2d.setColor(WHITE_CHECKER);
-                }else if(BOARD[y][x] == -1){
-                    g2d.setColor(BLACK_CHECKER);
-                }else{
-                    assert (BOARD[y][x] == 0);
+                Ellipse2D.Double circle = new Ellipse2D.Double(1.0 * x * SQUARE_SIZE + 0.5 * SQUARE_SIZE - 0.5 * CHECKER_SIZE, 1.0 * y * SQUARE_SIZE + 0.5 * SQUARE_SIZE - 0.5 * CHECKER_SIZE, CHECKER_SIZE, CHECKER_SIZE);
+                switch(BOARD[y][x]){
+                    case 1:
+                        g2d.setColor(WHITE_CHECKER);
+                        break;
+                    case -1:
+                        g2d.setColor(BLACK_CHECKER);
+                        break;
+                    default:
+                        assert BOARD[y][x] == 0;
+                        break;
                 }
-                Arc2D.Double circle = new Arc2D.Double(1.5 * x * SQUARE_SIZE - CHECKER_SIZE * 0.5, 1.5 * y * SQUARE_SIZE - CHECKER_SIZE * 0.5, CHECKER_SIZE, CHECKER_SIZE, 0, TWO_PI, Arc2D.Double.);
+
+                if(BOARD[y][x] != 0){
+                    g2d.fill(circle);
+                }
+
+
             }
         }
     }
