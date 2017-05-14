@@ -4,5 +4,7 @@
 public enum Piece{
     BLACK,
     WHITE,
-    EMPTY;
+    EMPTY,
+    BLACK_KING,
+    WHITE_KING;
 }

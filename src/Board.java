@@ -25,12 +25,14 @@ public class Board extends JPanel{
     private final Color BLACK_SQUARE = new Color(0xA0522D);
     private final Color WHITE_CHECKER = new Color(0xF5F5DC);
     private final Color BLACK_CHECKER = Color.BLACK;
+    private final Color TEXT_COLOR = Color.darkGray;
 
     private final Color SELECTED_COLOR = new Color(0, 0, 0, 127);
 
     private int selectedX = -1;
     private int selectedY = -1;
     private Piece currentMover = Piece.WHITE;
+    private boolean mustTake = false;
 
     private final int FPS = 60;
 
@@ -81,8 +83,6 @@ public class Board extends JPanel{
                     int moveToX = e.getX() / SQUARE_SIZE;
                     int moveToY = e.getY() / SQUARE_SIZE;
                     attemptMove(selectedX, selectedY, moveToX, moveToY);
-                    selectedX = -1;
-                    selectedY = -1;
                 }
             }
 
@@ -128,6 +128,10 @@ public class Board extends JPanel{
             g2d.fill(selection);
             g2d.draw(selection);
         }
+
+        g2d.setColor(TEXT_COLOR);
+        g2d.drawString("" + currentMover + "'s", 5, 15);
+        g2d.drawString("move!", 10, 28);
     }
 
     private void renderCheckers(Graphics2D g2d){
@@ -137,17 +141,23 @@ public class Board extends JPanel{
                 switch(BOARD[y][x]){
                     case WHITE:
                         g2d.setColor(WHITE_CHECKER);
+                        g2d.fill(circle);
                         break;
                     case BLACK:
                         g2d.setColor(BLACK_CHECKER);
+                        g2d.fill(circle);
+                        break;
+                    case WHITE_KING:
+                        g2d.setColor(WHITE_CHECKER);
+                        g2d.fill(circle);
+                        g2d.setColor(BLACK_CHECKER);
+                        g2d.drawString("K", 1.0f * x * SQUARE_SIZE + 0.5f * SQUARE_SIZE, 1.0f * y * SQUARE_SIZE + 0.5f * SQUARE_SIZE); //use floats for reasons?
+                        break;
+                    case BLACK_KING:
                         break;
                     default:
                         assert BOARD[y][x] == Piece.EMPTY;
                         break;
-                }
-
-                if(BOARD[y][x] != Piece.EMPTY){
-                    g2d.fill(circle);
                 }
             }
         }
@@ -155,41 +165,95 @@ public class Board extends JPanel{
 
     private boolean attemptMove(int startX, int startY, int finalX, int finalY){
         boolean isValidMove = false;
+        boolean tookPiece = false;
+        selectedX = -1; //since we moved and can't move again, deselect this piece
+        selectedY = -1;
         if(BOARD[finalY][finalX] == Piece.EMPTY && (finalX + finalY) % 2 == 1){
             switch(BOARD[startY][startX]){
                 case WHITE:
                     if(finalY < startY && currentMover == Piece.WHITE){
-                        if(startY - finalY == 1 && Math.abs(startX - finalX) == 1){
+                        if(startY - finalY == 1 && Math.abs(startX - finalX) == 1 && !mustTake){
                             isValidMove = true;
                         }else if(startY - finalY == 2 && Math.abs(startX - finalX) == 2){
                             if(BOARD[startY - 1][(startX + Integer.signum(finalX - startX))] == Piece.BLACK){
                                 BOARD[startY - 1][(startX + Integer.signum(finalX - startX))] = Piece.EMPTY; //clear the piece we just jumped over
                                 isValidMove = true;
+                                tookPiece = true;
                             }
                         }
                     }
                     break;
                 case BLACK:
                     if(finalY > startY && currentMover == Piece.BLACK){
-                        if(startY - finalY == -1 && Math.abs(startX - finalX) == 1){
+                        if(startY - finalY == -1 && Math.abs(startX - finalX) == 1 && !mustTake){
                             isValidMove = true;
                         }else if(startY - finalY == -2 && Math.abs(startX - finalX) == 2){
                             if(BOARD[startY + 1][(startX + Integer.signum(finalX - startX))] == Piece.WHITE){
                                 BOARD[startY + 1][(startX + Integer.signum(finalX - startX))] = Piece.EMPTY; //clear the piece we just jumped over
                                 isValidMove = true;
+                                tookPiece = true;
                             }
                         }
                     }
                     break;
+                case WHITE_KING:
+                    if(currentMover == Piece.WHITE_KING){
+                        if(Math.abs(startY - finalY) == 1 && Math.abs(startX - finalX) == 1 && !mustTake){
+                            isValidMove = true;
+                        }else if(Math.abs(startY - finalY) == 2 && Math.abs(startX - finalX) == 2){
+                            if(BOARD[startY + Integer.signum(finalY - startY)][startX + Integer.signum(finalX - startX)] == Piece.BLACK){
+                                isValidMove = true;
+                            }
+                        }
+                    }
                 default:
                     System.out.println("Check attemptMove(). You are trying to move from a square with no piece?");
             }
         }
 
         if(isValidMove){
+            mustTake = false;
             BOARD[finalY][finalX] = BOARD[startY][startX];
             BOARD[startY][startX] = Piece.EMPTY;
-            currentMover = (currentMover == Piece.BLACK ? Piece.WHITE : Piece.BLACK);
+            if(tookPiece){ //we only want to even worry about double jumping if we took a piece
+                switch(currentMover){
+                    case WHITE:
+                        if(finalY - 2 > 0){
+                            if(finalX + 2 < WIDTH){
+                                if((BOARD[finalY - 1][finalX + 1] == Piece.BLACK) && (BOARD[finalY - 2][finalX + 2] == Piece.EMPTY)){
+                                    mustTake = true;
+                                }
+                            }
+                            if(finalX - 2 > 0){
+                                if((BOARD[finalY - 1][finalX - 1] == Piece.BLACK) && (BOARD[finalY - 2][finalX - 2] == Piece.EMPTY)){
+                                    mustTake = true;
+                                }
+                            }
+                        }
+                        break;
+                    case BLACK:
+                        if(finalY + 2 < HEIGHT){
+                            if(finalX + 2 < WIDTH){
+                                if((BOARD[finalY + 1][finalX + 1] == Piece.WHITE) && (BOARD[finalY + 2][finalX + 2] == Piece.EMPTY)){
+                                    mustTake = true;
+                                }
+                            }
+                            if(finalX - 2 > 0){
+                                if((BOARD[finalY + 1][finalX - 1] == Piece.WHITE) && (BOARD[finalY + 2][finalX - 2] == Piece.EMPTY)){
+                                    mustTake = true;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+
+            if(!mustTake){
+                currentMover = (currentMover == Piece.BLACK ? Piece.WHITE : Piece.BLACK);
+            }else{
+                selectedX = finalX; //since we must move again, keep our last piece selected
+                selectedY = finalY;
+            }
         }
         return isValidMove;
     }
