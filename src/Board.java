@@ -30,7 +30,7 @@ public class Board extends JPanel{
 
     private int selectedX = -1;
     private int selectedY = -1;
-    private int selectedPiece;
+    private Piece currentMover = Piece.WHITE;
 
     private final int FPS = 60;
 
@@ -73,7 +73,7 @@ public class Board extends JPanel{
                 if(selectedX == -1 && selectedY == -1){
                     selectedX = e.getX() / SQUARE_SIZE;
                     selectedY = e.getY() / SQUARE_SIZE;
-                    if(BOARD[selectedY][selectedX] == Piece.EMPTY){
+                    if(BOARD[selectedY][selectedX] != currentMover){
                         selectedX = -1;
                         selectedY = -1;
                     }
@@ -153,22 +153,44 @@ public class Board extends JPanel{
         }
     }
 
-    private boolean isValidMove(int x, int y){
-        return (BOARD[y][x] == Piece.EMPTY) && (((x + y) % 2) == 1); //return true if the space is empty and it is a black square, and false otherwise
-    }
-
     private boolean attemptMove(int startX, int startY, int finalX, int finalY){
+        boolean isValidMove = false;
         if(BOARD[finalY][finalX] == Piece.EMPTY && (finalX + finalY) % 2 == 1){
             switch(BOARD[startY][startX]){
                 case WHITE:
+                    if(finalY < startY && currentMover == Piece.WHITE){
+                        if(startY - finalY == 1 && Math.abs(startX - finalX) == 1){
+                            isValidMove = true;
+                        }else if(startY - finalY == 2 && Math.abs(startX - finalX) == 2){
+                            if(BOARD[startY - 1][(startX + Integer.signum(finalX - startX))] == Piece.BLACK){
+                                BOARD[startY - 1][(startX + Integer.signum(finalX - startX))] = Piece.EMPTY; //clear the piece we just jumped over
+                                isValidMove = true;
+                            }
+                        }
+                    }
                     break;
                 case BLACK:
+                    if(finalY > startY && currentMover == Piece.BLACK){
+                        if(startY - finalY == -1 && Math.abs(startX - finalX) == 1){
+                            isValidMove = true;
+                        }else if(startY - finalY == -2 && Math.abs(startX - finalX) == 2){
+                            if(BOARD[startY + 1][(startX + Integer.signum(finalX - startX))] == Piece.WHITE){
+                                BOARD[startY + 1][(startX + Integer.signum(finalX - startX))] = Piece.EMPTY; //clear the piece we just jumped over
+                                isValidMove = true;
+                            }
+                        }
+                    }
                     break;
                 default:
                     System.out.println("Check attemptMove(). You are trying to move from a square with no piece?");
             }
         }
 
-        return false;
+        if(isValidMove){
+            BOARD[finalY][finalX] = BOARD[startY][startX];
+            BOARD[startY][startX] = Piece.EMPTY;
+            currentMover = (currentMover == Piece.BLACK ? Piece.WHITE : Piece.BLACK);
+        }
+        return isValidMove;
     }
 }
